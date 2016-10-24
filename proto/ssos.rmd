@@ -1,0 +1,78 @@
+---
+title: "SOOS Project Plan"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tibble)
+
+nam1 <- c("Vehicle_Type", "Vehicle_Name",  "Nation", "Voyage_Leader_Name", "Voyage_Leader_Email", "Voyage_Description")
+nam2 <- c("Tentative_Date", "Essential_Ocean_Variables")
+```
+
+
+Column {.sidebar}       
+---------------------------------------------
+
+### Mandatory
+
+```{r}
+
+selectInput("Vehicle_Type", label = "Vehicle_Type",
+            choices = c("ship", "helicopter", "land vehicle", "convoy", "other"),selected = "ship")
+dateRangeInput("Tentative_Date", "Tentative_Date")
+textInput("Nation", label = "Nation")
+textInput("Voyage_Leader_Name", label = "Voyage_Leader_Name")
+textInput("Voyage_Description", label = "Voyage_Description")
+selectInput("Essential_Ocean_Variables", label = "Essential_Ocean_Variables", 
+            choices = c("colour", "flavour", "smell", "style"))
+
+```
+
+Column
+---------------------------------------------
+
+### optional
+
+```{r}
+textInput("Vehicle_Name", label = "Vehicle_Name", 
+            placeholder = "Boaty McBoatFace")
+textInput("Voyage_Leader_Email", label = "Voyage_Leader_Email")
+
+```
+
+```{r}
+## get the data
+getdata1 <- reactive({
+  l <- vector("list", length(nam1))
+  names(l) <- nam1
+  for (i in seq_along(nam1)) {
+   l[[i]] <- input[[nam1[i]]]
+  }
+  d <- as_tibble(l)
+  d$Start_Date <- input$Tentative_Date[1]
+  d$EOVs <- paste(input$Essential_Ocean_Variables, collapse = ",")
+  d
+})
+```
+
+-----------------------------------------------------------------------
+
+### Voyage
+
+```{r}
+renderTable(getdata1())
+```
+
+### Project
+
+```{r}
+
+```
+

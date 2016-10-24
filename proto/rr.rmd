@@ -1,0 +1,61 @@
+---
+title: "Site Dashboard"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(sqldf)
+library(shiny)
+```
+
+
+Column {.sidebar}       
+---------------------------------------------
+
+```{r}
+selectInput("site", label = "WIM Site",
+            choices = c("26","27"),
+            selected = "26")
+
+numericInput("month", label = "Month",
+             value = 12, min = 1, max = 12, step = 1)
+
+selectInput("year", label = "Year",
+            choices = c("2014","2015","2016"),
+            selected = "2015")    
+
+```
+
+Column
+-----------------------------------------------------------------------
+
+```{r}
+### Query Results
+
+#db <- dbConnect(SQLite(), dbname="N:/TrafMon/WIM/Ian/minWIM.sqlite")
+db <- data.frame(site = c("26", "27"), month = 11:12, year = c("2014", "2015"), stringsAsFactors = FALSE)
+
+
+
+project_table <- reactive({
+    
+})
+
+query<-reactive({
+  sprintf("SELECT * FROM db WHERE month == %s ", input$month) 
+  #, paste("wim",input$site,"_", input$year,
+   #sep=""), paste("WHERE month =="),input$month, "LIMIT 5")
+})
+
+
+
+a <- reactive({
+  sqldf(query(), db)
+})
+
+#query
+
+renderTable(a())
+```
