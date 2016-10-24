@@ -1,5 +1,5 @@
 ---
-title: "SOOS plan builder"
+title: "My plan builder"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
@@ -7,24 +7,17 @@ output:
 runtime: shiny
 ---
 
-```{r}
+```{r setup, include=FALSE}
 library(flexdashboard)
 library(leaflet)
 library(dplyr)
-fname <- "C:\\Users\\MICHAE~1\\AppData\\Local\\Temp\\RtmpGS5cwG\\filecfc22271009.sqlite"
-```
-
-```{r setup, include = FALSE, eval = FALSE}
-library(flexdashboard)
-library(leaflet)
-library(dplyr)
-db <- src_sqlite(fname, create = TRUE)
-dummytab <- data_frame(name = "dummy", date_start = Sys.Date(), date_end = Sys.Date(), team_size = 0L, show = FALSE)
-d <- data.frame(x = rnorm(1), y = sample(letters, 1))
-tab <- copy_to(db, dummytab, temporary = FALSE )
-db_insert_into( con = db$con, table = "d", values = d)
-db_insert_into( con = db$con, table = "dummytab", values = as.data.frame(dummytab))
-tab <- tbl(db, "d")
+db <- src_sqlite("/perm_storage/home/mdsumner/Git/SOOS/my.db", create = FALSE)
+#dummytab <- data_frame(name = "dummy", date_start = Sys.Date(), date_end = Sys.Date(), team_size = 0L, show = FALSE)
+#d <- data.frame(x = rnorm(1), y = sample(letters, 1))
+#tab <- copy_to(db, dummytab, temporary = FALSE )
+#db_insert_into( con = db$con, table = "d", values = d)
+#db_insert_into( con = db$con, table = "dummytab", values = as.data.frame(dummytab))
+#tab <- tbl(db, "d")
 ```
 Column {.sidebar}
 -----------------------------------------------------------------------
@@ -32,9 +25,16 @@ Column {.sidebar}
 Enter initial details on  plan. 
 
 ```{r}
+## INPUTS
+textInput("voyage_id", label = "Voyage ID", value = "<automatic>")
+textInput("vehicle_type", label = "Type of vehicle", value = "Dukw")
+textInput("vehicle_name", label = "Name of vehicle", value = "Boaty McBoatFace")
 textInput("plan_name", label = "Name of  plan", value = "A plan name")
+#dateInput("date_start", label = "Exact start date", value = NULL)
+#dateInput("date_end", label = "Exact end date", value = NULL)
 dateRangeInput("date_range", label = "Date start and end", start = NULL, end = Sys.Date() + 7L)
 numericInput("n_team", label = "Number of team members", value = 1L, min = 1L, max = NA_integer_)
+
 actionButton("do", "Click Me")
 ```
 
@@ -51,14 +51,14 @@ leaflet() %>% addTiles()
 
 ```{r}
 get_data <- function() {  
-  db <- src_sqlite(fname, create = FALSE)
+  db <- src_sqlite("/perm_storage/home/mdsumner/Git/SOOS/my.db", create = FALSE)
  tab <- tbl(db, "dummytab") %>% filter(show > 0) %>% select(-show) %>% distinct() %>% collect()
  rm(db)
  tab
 }
 
 store_data <- function(innew) {
-  db <- src_sqlite(fname, create = FALSE)
+  db <- src_sqlite("/perm_storage/home/mdsumner/Git/SOOS/my.db", create = FALSE)
   dummytab <- data_frame(name = "dummy", date_start = Sys.Date(), date_end = Sys.Date(), team_size = 1L, show = TRUE)
   db_insert_into( con = db$con, table = "dummytab", values = as.data.frame(innew))
    rm(db)
