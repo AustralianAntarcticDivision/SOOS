@@ -11,7 +11,8 @@ runtime: shiny
 library(flexdashboard)
 library(leaflet)
 library(dplyr)
-fname <- normalizePath("filecfc44542018.sqlite")
+library(timevis)
+fname <- normalizePath("filecfc00.sqlite")
 random_id <- function() {
   paste(sample(c(letters,LETTERS, 0:9), 6, replace = TRUE), collapse = "")
 }
@@ -25,13 +26,14 @@ library(dplyr)
 if (!file.exists(fname)) {
 db <- src_sqlite(fname, create = TRUE)
 dummytab <- data_frame(ID = "0", name = "dummy", lead = "dummy", 
-                       date_start = Sys.Date(), date_end = Sys.Date(), team_size = 0L,
+        date_start_year = 0L, date_start_month = 1L, date_start_day = 1L, 
+        date_end_year = 0L, date_end_month = 12L, date_end_day = 31L, 
+        team_size = 0L,
                        llbox = "", 
+        created = Sys.time(),
                        show = FALSE)
-d <- data.frame(x = rnorm(1), y = sample(letters, 1))
 tab <- copy_to(db, dummytab, temporary = FALSE )
-db_insert_into( con = db$con, table = "d", values = d)
-db_insert_into( con = db$con, table = "dummytab", values = as.data.frame(dummytab))
+db_insert_into( con = db$con, table = "dummytab", values = dummytab)
 #tab <- tbl(db, "d")
 }
 ```
@@ -44,7 +46,8 @@ Enter initial details on  plan.
 ```{r}
 textInput("project_name", label = "Name of project", value = "A project name")
 textInput("lead_name", label = "Leader name", value = "Project leader name")
-dateRangeInput("date_range", label = "Date start and end", start = NULL, end = Sys.Date() + 7L)
+dateInput("date_start", label = "Date start", value = Sys.Date())
+dateInput("date_end", label = "Date end", value = Sys.Date() + 7L)
 numericInput("n_team", label = "Number of team members", value = 1L, min = 1L, max = NA_integer_)
 actionButton("write", "Write it")
 ```
@@ -54,7 +57,7 @@ Input details
 
 ### A map
 
-```{r}
+```{r,eval=FALSE}
   output$map <- renderLeaflet({
 leaflet() %>% addTiles() %>% 
        setView(lng = 147, lat = -44, zoom = 4)
@@ -67,11 +70,11 @@ leafletOutput("map", width="100%", height="100%")
 ```{r}
 get_data <- function() {  
   db <- src_sqlite(fname, create = FALSE)
-  tab <- tbl(db, "dummytab") %>% filter(show > 0) %>% select(-show) %>% distinct() %>% collect()
+  tab <- tbl(db, "dummytab") %>% filter(show > 0) %>% select(-show) %>% arrange(desc(created)) %>%  distinct() %>% collect()
   rm(db)
-  #tab$date_start <- fdate(tab$date_start )
-  #tab$date_end <- fdate(tab$date_end)
-  tab
+  tab$date_start <- format(ISOdate(tab$date_start_year, tab$date_start_month, tab$date_start_day), "%Y-%m-%d")
+  tab$date_end <- format(ISOdate(tab$date_end_year, tab$date_end_month, tab$date_end_day), "%Y-%m")
+  tab %>% select(name, lead, team_size, date_start, date_end, llbox)
 }
 
 store_data <- function(innew) {
@@ -97,21 +100,47 @@ observeEvent(input$write, {
     bounds <- input$map_bounds
      latRng <- range(bounds$north, bounds$south)
      lngRng <- range(bounds$east, bounds$west)
+     date_start <- input$date_start
+     date_end <- input$date_end
  d <- data_frame(ID = random_id(), name = input$project_name, 
                  lead = input$lead_name, 
-                  date_start = cdate(input$date_range[1]), 
-                  date_end = cdate(input$date_range[2]), 
+                  date_start_year= as.integer(format(date_start, "%Y")), 
+                 date_start_month= as.integer(format(date_start, "%m")), 
+                 date_start_day = as.integer(format(date_start, "%d")),
+                  date_end_year  = as.integer(format(date_end, "%Y")), 
+                 date_end_month  = as.integer(format(date_end, "%m")),
+                 date_end_day  = as.integer(format(date_end, "%d")),
                   team_size = input$n_team, 
-                 llbox = formatLoc(lngRng, latRng), show = TRUE)
+                 llbox = formatLoc(lngRng, latRng), 
+                 created = Sys.time(), 
+                 show = TRUE)
   store_data(d)
   
   
 })
 
-DT::renderDataTable({
+get_time <- reactive({
   input$write
-    get_data()
+ ##dd <- get_data()
+ timedata <- data.frame(
+   id      = 1,
+   content = input$project_name,
+   start   = input$date_start,
+   end     = input$date_end
+ )
+ timevis(timedata)
 })
+ 
+renderTimevis({
+  get_time()
+})
+ # 
+ # DT::renderDataTable({
+ #   input$write
+ #     get_data()
+ # })
+
+
 
 ```
 
