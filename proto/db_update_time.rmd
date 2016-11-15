@@ -12,6 +12,7 @@ library(flexdashboard)
 library(leaflet)
 library(dplyr)
 library(timevis)
+
 fname <- normalizePath("filecfc002.sqlite")
 random_id <- function() {
   paste(sample(c(letters,LETTERS, 0:9), 6, replace = TRUE), collapse = "")
@@ -141,6 +142,45 @@ gd %>% dplyr::select(name, lead, team_size, date_start, date_end, llbox)
 
 ```
 
+Map (pick extent)
+========================================================================
+
+### A map
+
+```{r}
+
+voyage <- readRDS("../data/aurora.rds")
+ports <- readr::read_csv("../data/Southern_Ocean_Ports.csv")
+voyage$date <- format(voyage$DATE_TIME_UTC)
+pal <- colorFactor(c( "#440154FF", "#FDE725FF"), domain = c("out", "in"))
+voyage$outgoing <- voyage$DATE_TIME_UTC < as.POSIXct("2013-02-04")
+voyage$stage <- c("out", "in")[voyage$outgoing + 1]
+voyage$radius <- ifelse(voyage$outgoing, 6, 3)
+#voyage$colour <- [voyage$outgoing + 1]
+content <- sprintf(
+  "<b><a href='https://www.google.com.au/search?q=%s'>%s</a></b>", 
+  gsub("\\s+", "%20", ports$Name), ports$Name)
+#library(sp)
+#coordinates(ports) <- c("lon_dd", "lat_dd")
+#proj4string(ports) <- CRS("+init=epsg:4326")
+  output$map <- renderLeaflet({
+leaflet() %>% addTiles() %>% 
+       # addPopups(~lon_dd, ~lat_dd, content, 
+       #  options = popupOptions(minWidth = 20, closeOnClick = FALSE, closeButton = FALSE), data = ports) %>% 
+      addMarkers(~lon_dd, ~lat_dd, 
+        popup = content, data = ports) %>% 
+      addPolylines(~LONGITUDE_DEGEAST, ~LATITUDE_DEGNORTH, 
+                    data = voyage) %>% 
+      addCircleMarkers(~LONGITUDE_DEGEAST, ~LATITUDE_DEGNORTH, fillOpacity = 0.85, color = ~pal(stage), radius = ~radius, popup = ~date, data = voyage) %>% 
+       setView(lng = 147, lat = -44, zoom = 4)
+    
+    
+  })
+leafletOutput("map", width="100%", height="100%")
+```
+
+
+
 Internals (debug)
 ========================================================================
 
@@ -150,15 +190,3 @@ shiny::renderText(sprintf("Delete this file manually to clear the DB\n%s", fname
 ```
 
 
-Map (debug)
-========================================================================
-
-### A map
-
-```{r}
-  output$map <- renderLeaflet({
-leaflet() %>% addTiles() %>% 
-       setView(lng = 147, lat = -44, zoom = 4)
-  })
-leafletOutput("map", width="100%", height="100%")
-```
