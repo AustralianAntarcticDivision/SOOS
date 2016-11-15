@@ -1,0 +1,122 @@
+---
+title: "SOOS plan builder"
+output: 
+ flexdashboard::flex_dashboard:
+   orientation: columns
+   vertical_layout: fill
+   theme: cerulean
+runtime: shiny
+---
+
+
+
+
+```{r}
+library(flexdashboard)
+library(leaflet)
+library(dplyr)
+library(timevis)
+library(shiny)
+fname <- normalizePath("filecfc003.sqlite")
+
+epoch <- ISOdate(1970, 1, 1)
+```
+
+```{r setup, include = FALSE, eval = TRUE}
+
+
+db <- init_db(fname)
+```
+
+Column {.sidebar}
+========================================================================
+
+Enter initial details on  plan. 
+
+```{r build_ui}
+textInput("project_name", label = "Name of project", value = "A project name")
+textInput("lead_name", label = "Leader name", value = "Project leader name")
+dateInput("date_start", label = "Date start", value = Sys.Date())
+dateInput("date_end", label = "Date end", value = Sys.Date() + 7L)
+numericInput("n_team", label = "Number of team members", value = 1L, min = 1L, max = NA_integer_)
+actionButton("write", "Write it")
+```
+
+Input details
+========================================================================
+
+### Timeline
+
+```{r}
+observeEvent(input$write, {
+  bounds <- input$map_bounds
+  latRng <- range(bounds$north, bounds$south)
+  lngRng <- range(bounds$east, bounds$west)
+  date_start <- input$date_start
+  date_end <- input$date_end
+  d <- data_frame(ID = random_id(), name = input$project_name, 
+                  lead = input$lead_name, 
+                  date_start_year= as.integer(format(date_start, "%Y")), 
+                  date_start_month= as.integer(format(date_start, "%m")), 
+                  date_start_day = as.integer(format(date_start, "%d")),
+                  date_end_year  = as.integer(format(date_end, "%Y")), 
+                  date_end_month  = as.integer(format(date_end, "%m")),
+                  date_end_day  = as.integer(format(date_end, "%d")),
+                  team_size = input$n_team, 
+                  llbox = formatLoc(lngRng, latRng), 
+                  created = Sys.time(), 
+                  show = TRUE)
+  store_data(d)
+  
+  
+})
+
+renderTimevis({
+  get_time()
+})
+```
+
+### Table
+```{r}
+DT::renderDataTable({
+  input$write
+  gd <- get_data()
+  gd$date_start <- format(gd$date_start, "%Y-%m-%d")
+  gd$date_end <- format(gd$date_end, "%Y-%m")
+  gd %>% dplyr::select(name, lead, team_size, date_start, date_end, llbox)
+})
+
+
+
+```
+
+Map (pick extent)
+========================================================================
+
+### A map
+
+```{r}
+library(shiny)
+ports <- prepare_ports()
+voyage <- prepare_voyage()
+output$map <- leaflet::renderLeaflet({
+  
+
+  build_map()
+  
+})
+leaflet::leafletOutput("map", width="100%", height="100%")
+
+```
+
+
+
+Internals (debug)
+========================================================================
+
+```{r}
+shiny::renderText(sprintf("Delete this file manually to clear the DB\n%s", fname))
+
+```
+
+
