@@ -4,8 +4,12 @@ output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
+    theme: cerulean
 runtime: shiny
 ---
+
+
+
 
 ```{r}
 library(flexdashboard)
@@ -178,6 +182,7 @@ output$map <- leaflet::renderLeaflet({
     
   })
 leaflet::leafletOutput("map", width="100%", height="100%")
+
 ```
 
 
