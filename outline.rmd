@@ -1,0 +1,69 @@
+---
+title: "My plan builder"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(leaflet)
+library(dplyr)
+```
+
+Project individual details. 
+===================================== 
+
+Column 1
+-----------------------------------------------------------------------
+
+
+```{r}
+## INPUTS
+textInput("voyage_id", label = "Voyage ID", value = "v1")
+textInput("project_id", label = "Project ID", value = "p1")
+textInput("project_name", label = "Name of project", 
+          value = "Project 1")
+textInput("principal_investigator_name", 
+          label = "Name of  Principal Investigator", 
+          value = "Principal Investigator")
+textInput("principal_investigator_email", 
+          label = "Email of  Principal Investigator", 
+          value = "Principal.Investigator@email.com")
+
+
+```
+
+
+Column 2
+-----------------------------------------------------------------------
+  
+
+```{r}
+textInput("project_description", 
+          label = "Project Description", 
+          value = "project description")
+textInput("project_url", 
+         label = "Project URL", 
+         value = "https://url.com/")
+textInput("essential_ovs", 
+          label = "Essential Ocean Variables", 
+          value = "essential,ov,abc")
+textInput("funding_status", 
+          label = "Funding Status", 
+          value = "not funded")
+```
+
+Voyage details. 
+===================================== 
+
+## Flotsam
+
+```{r}
+#dateInput("date_start", label = "Exact start date", value = NULL)
+#dateInput("date_end", label = "Exact end date", value = NULL)
+dateRangeInput("date_range", label = "Date start and end", start = NULL, end = Sys.Date() + 7L)
+numericInput("n_team", label = "Number of team members", value = 1L, min = 1L, max = NA_integer_)
+```

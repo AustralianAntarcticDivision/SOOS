@@ -1,0 +1,23 @@
+---
+title: "My plan builder"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+A plan
+==========================
+
+```{r}
+plot(1)
+```
+
+B plan
+==========================
+
+```{r}
+plot(2)
+```
+

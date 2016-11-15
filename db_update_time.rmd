@@ -12,8 +12,8 @@ library(flexdashboard)
 library(leaflet)
 library(dplyr)
 library(timevis)
-
-fname <- normalizePath("filecfc002.sqlite")
+library(shiny)
+fname <- normalizePath("filecfc003.sqlite")
 random_id <- function() {
   paste(sample(c(letters,LETTERS, 0:9), 6, replace = TRUE), collapse = "")
 }
@@ -149,8 +149,8 @@ Map (pick extent)
 
 ```{r}
 
-voyage <- readRDS("../data/aurora.rds")
-ports <- readr::read_csv("../data/Southern_Ocean_Ports.csv")
+voyage <- readRDS("data/aurora.rds")
+ports <- readr::read_csv("data/Southern_Ocean_Ports.csv")
 voyage$date <- format(voyage$DATE_TIME_UTC)
 pal <- colorFactor(c( "#440154FF", "#FDE725FF"), domain = c("out", "in"))
 voyage$outgoing <- voyage$DATE_TIME_UTC < as.POSIXct("2013-02-04")
@@ -163,8 +163,8 @@ content <- sprintf(
 #library(sp)
 #coordinates(ports) <- c("lon_dd", "lat_dd")
 #proj4string(ports) <- CRS("+init=epsg:4326")
-  output$map <- renderLeaflet({
-leaflet() %>% addTiles() %>% 
+ renderLeaflet({
+output$map <- leaflet() %>% addTiles() %>% 
        # addPopups(~lon_dd, ~lat_dd, content, 
        #  options = popupOptions(minWidth = 20, closeOnClick = FALSE, closeButton = FALSE), data = ports) %>% 
       addMarkers(~lon_dd, ~lat_dd, 
