@@ -1,0 +1,154 @@
+---
+title: "SOOS plan builder"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r}
+library(flexdashboard)
+library(leaflet)
+library(dplyr)
+library(timevis)
+fname <- normalizePath("filecfc00.sqlite")
+random_id <- function() {
+  paste(sample(c(letters,LETTERS, 0:9), 6, replace = TRUE), collapse = "")
+}
+epoch <- ISOdate(1970, 1, 1)
+```
+
+```{r setup, include = FALSE, eval = TRUE}
+library(flexdashboard)
+library(leaflet)
+library(dplyr)
+if (!file.exists(fname)) {
+db <- src_sqlite(fname, create = TRUE)
+dummytab <- data_frame(ID = "0", name = "dummy", lead = "dummy", 
+        date_start_year = 0L, date_start_month = 1L, date_start_day = 1L, 
+        date_end_year = 0L, date_end_month = 12L, date_end_day = 31L, 
+        team_size = 0L,
+                       llbox = "", 
+        created = Sys.time(),
+                       show = FALSE)
+tab <- copy_to(db, dummytab, temporary = FALSE )
+db_insert_into( con = db$con, table = "dummytab", values = dummytab)
+#tab <- tbl(db, "d")
+}
+```
+
+Column {.sidebar}
+========================================================================
+
+Enter initial details on  plan. 
+
+```{r}
+textInput("project_name", label = "Name of project", value = "A project name")
+textInput("lead_name", label = "Leader name", value = "Project leader name")
+dateInput("date_start", label = "Date start", value = Sys.Date())
+dateInput("date_end", label = "Date end", value = Sys.Date() + 7L)
+numericInput("n_team", label = "Number of team members", value = 1L, min = 1L, max = NA_integer_)
+actionButton("write", "Write it")
+```
+
+Input details
+========================================================================
+
+### A map
+
+```{r,eval=FALSE}
+  output$map <- renderLeaflet({
+leaflet() %>% addTiles() %>% 
+       setView(lng = 147, lat = -44, zoom = 4)
+  })
+leafletOutput("map", width="100%", height="100%")
+```
+
+### Plan details
+
+```{r}
+get_data <- function() {  
+  db <- src_sqlite(fname, create = FALSE)
+  tab <- tbl(db, "dummytab") %>% filter(show > 0) %>% select(-show) %>% arrange(desc(created)) %>%  distinct() %>% collect()
+  rm(db)
+  tab$date_start <- format(ISOdate(tab$date_start_year, tab$date_start_month, tab$date_start_day), "%Y-%m-%d")
+  tab$date_end <- format(ISOdate(tab$date_end_year, tab$date_end_month, tab$date_end_day), "%Y-%m")
+  tab %>% select(name, lead, team_size, date_start, date_end, llbox)
+}
+
+store_data <- function(innew) {
+  db <- src_sqlite(fname, create = FALSE)
+  #dummytab <- data_frame(name = "dummy", date_start = Sys.Date(), date_end = Sys.Date(), team_size = 1L, show = TRUE)
+  db_insert_into( con = db$con, table = "dummytab", values = as.data.frame(innew))
+  rm(db)
+}
+
+cdate <- function(x) {
+  as.numeric(x) + as.POSIXct("1970-01-01")
+}
+fdate <- function(x) format(x, "%Y,%B")
+formatLoc <- function(lon, lat) {
+  sprintf("%s,%s %s,%s", 
+                                 format(lon[1], digits = 5), 
+                                 format(lon[2], digits = 5), 
+                                 format(lat[1], digits = 4), 
+                                 format(lat[2], digits = 4)
+          )
+}
+observeEvent(input$write, {
+    bounds <- input$map_bounds
+     latRng <- range(bounds$north, bounds$south)
+     lngRng <- range(bounds$east, bounds$west)
+     date_start <- input$date_start
+     date_end <- input$date_end
+ d <- data_frame(ID = random_id(), name = input$project_name, 
+                 lead = input$lead_name, 
+                  date_start_year= as.integer(format(date_start, "%Y")), 
+                 date_start_month= as.integer(format(date_start, "%m")), 
+                 date_start_day = as.integer(format(date_start, "%d")),
+                  date_end_year  = as.integer(format(date_end, "%Y")), 
+                 date_end_month  = as.integer(format(date_end, "%m")),
+                 date_end_day  = as.integer(format(date_end, "%d")),
+                  team_size = input$n_team, 
+                 llbox = formatLoc(lngRng, latRng), 
+                 created = Sys.time(), 
+                 show = TRUE)
+  store_data(d)
+  
+  
+})
+
+get_time <- reactive({
+  input$write
+ ##dd <- get_data()
+ timedata <- data.frame(
+   id      = 1,
+   content = input$project_name,
+   start   = input$date_start,
+   end     = input$date_end
+ )
+ timevis(timedata)
+})
+ 
+renderTimevis({
+  get_time()
+})
+ # 
+ # DT::renderDataTable({
+ #   input$write
+ #     get_data()
+ # })
+
+
+
+```
+
+Internals (debug)
+========================================================================
+
+```{r}
+shiny::renderText(sprintf("Delete this file manually to clear the DB\n%s", fname))
+
+```
+
