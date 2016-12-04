@@ -11,7 +11,7 @@ library(leaflet)
 library(dplyr)
 library(timevis)
 library(shiny)
-fname <- normalizePath("filecfc008.sqlite", mustWork = FALSE)
+fname <- normalizePath("filecfc009.sqlite", mustWork = FALSE)
 
 epoch <- ISOdate(1970, 1, 1)
 
@@ -63,8 +63,8 @@ observeEvent(input$write, {
 
 get_time <- reactive({
   input$table
- timedata <- get_data(fname) %>% 
-   mutate(id = ID, content = sprintf("%s, %s", name, lead)) %>% #%>% group_by(id, content) %>% 
+ timedata <- get_data(fname) %>%
+   mutate(id = ID, content = sprintf("%s, %s", name, lead)) %>% #%>% group_by(id, content) %>%
   rename(start = date_start, end = date_end)
  timevis(timedata)
 })
@@ -97,8 +97,8 @@ DT::dataTableOutput("table")
 
 ```{r}
 library(shiny)
-ports <- prepare_ports()
-voyage <- prepare_voyage()
+ports <- SOOS.proto01:::prepare_ports()
+voyage <- SOOS.proto01:::prepare_voyage()
 output$map <- leaflet::renderLeaflet({
   
 

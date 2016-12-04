@@ -60,6 +60,7 @@ formatLoc <- function(lon, lat) {
 }
 
 build_map <- function(voyage, ports) {
+  pal <- leaflet::colorFactor(c( "#440154FF", "#FDE725FF"), domain = c("out", "in"))
   leaflet() %>% addTiles() %>%
     addMarkers(~lon_dd, ~lat_dd,
                popup = ports$content, data = ports) %>%
@@ -80,26 +81,23 @@ prepare_voyage <- function(){
 
   voyage$date <- format(voyage$DATE_TIME_UTC)
 
-voyage$outgoing <- voyage$DATE_TIME_UTC < as.POSIXct("2013-02-04")
-voyage$stage <- c("out", "in")[voyage$outgoing + 1]
-voyage$radius <- ifelse(voyage$outgoing, 6, 3)
-#voyage$colour <- [voyage$outgoing + 1]
-voyage
+  voyage$outgoing <- voyage$DATE_TIME_UTC < as.POSIXct("2013-02-04")
+  voyage$stage <- c("out", "in")[voyage$outgoing + 1]
+  voyage$radius <- ifelse(voyage$outgoing, 6, 3)
+  #voyage$colour <- [voyage$outgoing + 1]
+  voyage
 }
-pal <- leaflet::colorFactor(c( "#440154FF", "#FDE725FF"), domain = c("out", "in"))
-get_time <- reactive({
-  input$write
-  dd <- get_data()
 
-  timedata <- data.frame(
-    id      = dd$ID,
-    content = dd$name,
-    start   = dd$date_start,
-    end     = dd$date_end
-  )
-  timevis(timedata)
-})
+# get_time <- reactive({
+#   input$write
+#   dd <- get_data()
+#
+#   timedata <- data.frame(
+#     id      = dd$ID,
+#     content = dd$name,
+#     start   = dd$date_start,
+#     end     = dd$date_end
+#   )
+#   timevis(timedata)
+# })
 
-renderTimevis({
-  get_time()
-})
