@@ -1,6 +1,16 @@
 random_id <- function() {
   paste(sample(c(letters,LETTERS, 0:9), 6, replace = TRUE), collapse = "")
 }
+
+
+#' Title
+#'
+#' @param fname
+#'
+#' @return
+#' @export
+#'
+#' @examples
 init_db <- function(fname) {
   if (!file.exists(fname)) {
     db <- src_sqlite(fname, create = TRUE)
@@ -14,11 +24,14 @@ init_db <- function(fname) {
     tab <- copy_to(db, dummytab, temporary = FALSE )
     db_insert_into( con = db$con, table = "dummytab", values = dummytab)
     #tab <- tbl(db, "d")
-  }
+  } else (
+    db <- src_sqlite(fname, create = FALSE)
+  )
+  db
 }
 
-get_data <- function() {
-  db <- src_sqlite(fname, create = FALSE)
+get_data <- function(dbfile) {
+  db <- src_sqlite(dbfile, create = FALSE)
   tab <- tbl(db, "dummytab") %>% filter(show > 0) %>% select(-show) %>% arrange(desc(created)) %>%  distinct() %>% collect()
   rm(db)
   tab$date_start <- ISOdate(tab$date_start_year, tab$date_start_month, tab$date_start_day)
@@ -26,8 +39,8 @@ get_data <- function() {
   tab
 }
 
-store_data <- function(innew) {
-  db <- src_sqlite(fname, create = FALSE)
+store_data <- function(innew, dbfile) {
+  db <- src_sqlite(dbfile, create = FALSE)
   #dummytab <- data_frame(name = "dummy", date_start = Sys.Date(), date_end = Sys.Date(), team_size = 1L, show = TRUE)
   db_insert_into( con = db$con, table = "dummytab", values = as.data.frame(innew))
   rm(db)
@@ -46,7 +59,7 @@ formatLoc <- function(lon, lat) {
   )
 }
 
-build_map <- function() {
+build_map <- function(voyage, ports) {
   leaflet() %>% addTiles() %>%
     addMarkers(~lon_dd, ~lat_dd,
                popup = ports$content, data = ports) %>%
@@ -56,8 +69,6 @@ build_map <- function() {
     setView(lng = 147, lat = -44, zoom = 4)
 }
 prepare_ports <- function()  {
-
-
   ports <- readr::read_csv(system.file("extdata", "Southern_Ocean_Ports.csv", package = "SOOS.cuboc"))
   ports$content <- sprintf(
     "<b><a href='https://www.google.com.au/search?q=%s'>%s</a></b>",

@@ -1,35 +1,25 @@
 ---
 title: "SOOS plan builder"
-output: 
- flexdashboard::flex_dashboard:
-   orientation: columns
-   vertical_layout: fill
-   theme: cerulean
+output: flexdashboard::flex_dashboard
 runtime: shiny
 ---
 
-
-
-
-```{r}
+```{r setup, include = FALSE, eval = TRUE}
+library(SOOS.proto01)
 library(flexdashboard)
 library(leaflet)
 library(dplyr)
 library(timevis)
 library(shiny)
-fname <- normalizePath("filecfc003.sqlite")
+fname <- normalizePath("filecfc008.sqlite", mustWork = FALSE)
 
 epoch <- ISOdate(1970, 1, 1)
-```
-
-```{r setup, include = FALSE, eval = TRUE}
-
 
 db <- init_db(fname)
 ```
 
-Column {.sidebar}
-========================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
 
 Enter initial details on  plan. 
 
@@ -43,7 +33,7 @@ actionButton("write", "Write it")
 ```
 
 Input details
-========================================================================
+-----------------------------------------------------------------------
 
 ### Timeline
 
@@ -66,32 +56,42 @@ observeEvent(input$write, {
                   llbox = formatLoc(lngRng, latRng), 
                   created = Sys.time(), 
                   show = TRUE)
-  store_data(d)
+  store_data(d, fname)
   
   
 })
 
+get_time <- reactive({
+  input$table
+ timedata <- get_data(fname) %>% 
+   mutate(id = ID, content = sprintf("%s, %s", name, lead)) %>% #%>% group_by(id, content) %>% 
+  rename(start = date_start, end = date_end)
+ timevis(timedata)
+})
+
+
+
 renderTimevis({
+
   get_time()
 })
+timevisOutput("mytime")
 ```
 
 ### Table
 ```{r}
 DT::renderDataTable({
   input$write
-  gd <- get_data()
+  gd <- get_data(fname)
   gd$date_start <- format(gd$date_start, "%Y-%m-%d")
   gd$date_end <- format(gd$date_end, "%Y-%m")
   gd %>% dplyr::select(name, lead, team_size, date_start, date_end, llbox)
 })
 
 
-
+DT::dataTableOutput("table")
 ```
 
-Map (pick extent)
-========================================================================
 
 ### A map
 
@@ -102,7 +102,7 @@ voyage <- prepare_voyage()
 output$map <- leaflet::renderLeaflet({
   
 
-  build_map()
+  build_map(voyage = voyage, ports = ports)
   
 })
 leaflet::leafletOutput("map", width="100%", height="100%")
@@ -110,13 +110,5 @@ leaflet::leafletOutput("map", width="100%", height="100%")
 ```
 
 
-
-Internals (debug)
-========================================================================
-
-```{r}
-shiny::renderText(sprintf("Delete this file manually to clear the DB\n%s", fname))
-
-```
 
 
